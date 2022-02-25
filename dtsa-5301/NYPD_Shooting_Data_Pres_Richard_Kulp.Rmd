@@ -1,0 +1,109 @@
+---
+title: "NYPD Shooting Data Investigation"
+author: "RK"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Overview
+
+The report is based NYPD Shooting Data up to the year 2020. In this report we will look at total shootings by age group, a distribution of shootings by hour of day, and a long term forecast of shooting numbers in the years to come. We will be visualizing these with simple graphs and discussing both expected and unexpected outcomes
+
+
+
+## Importing Data
+The following steps pull in the NYPD historical shooting data from the US Gov Data site. After we load the data to a raw data frame, we clean the data set by selecting only the columns we need for our investigation. We fix the date column to be a more friendly "yyyy-mm-dd" format, and fill in "NA" values with "UNKNOWN" for the perpetrator related columns.Filling in the NA value with "UNKNOWN" gives a static value for analysis instead of NULL. If we decide to exclude records with "UNKNOWN" perpetrator values we can filter on that string specifically. 
+
+Here is a summary of the "cleaned_shooting_data" table. 
+
+```{r cleaned_shooting_data}
+library(tidyverse)
+library(lubridate)
+url_in <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv"
+raw_table = read_csv(url_in)
+cleaned_shooting_data = raw_table %>% select(OCCUR_DATE,OCCUR_TIME, BORO, STATISTICAL_MURDER_FLAG, PERP_AGE_GROUP, PERP_SEX, PERP_RACE, VIC_AGE_GROUP, VIC_SEX, VIC_RACE) %>% mutate(OCCUR_DATE = mdy(OCCUR_DATE)) %>% mutate(PERP_AGE_GROUP = replace_na(PERP_AGE_GROUP,"UNKNOWN"))  %>% mutate(PERP_SEX = replace_na(PERP_SEX,"U")) %>% mutate(PERP_RACE = replace_na(PERP_RACE,"UNKNOWN"))
+summary(cleaned_shooting_data)
+```
+
+
+
+## Analysis and Visualization
+
+The first analysis was done on shooters by age. This was done over the entire data set.Note that there was still a bit of data clean up that had to happen as there were some bad values for age group. These were converted to be "UNKNOWN".
+
+```{r by_age_group}
+clean_age_group = cleaned_shooting_data %>% mutate(PERP_AGE_GROUP = ifelse(PERP_AGE_GROUP == '1020', 'UNKNOWN', PERP_AGE_GROUP)) %>% mutate(PERP_AGE_GROUP = ifelse(PERP_AGE_GROUP == '940', 'UNKNOWN', PERP_AGE_GROUP)) %>% mutate(PERP_AGE_GROUP = ifelse(PERP_AGE_GROUP == '224', 'UNKNOWN', PERP_AGE_GROUP))
+
+by_age_group = clean_age_group %>% count(PERP_AGE_GROUP)
+
+ggplot(data=by_age_group, aes(x=PERP_AGE_GROUP, y=n)) + 
+    geom_bar(colour="black", fill="#DD8888", width=.8, stat="identity") + 
+    guides(fill=none) +
+    xlab("Perpetrator Age Group") + ylab("Total Number of Shootings") +
+    ggtitle("NYPD Shooters by Age Group")
+
+```
+
+As can be seen by the graph above, a large amount of shooting perpetrators are unknown. This could be interpreted by the perpetrators not actually being apprehended by police. When UNKNOWN age groups are excluded it seem that the majority of perpetrators are between 18 and 44, while a steep decline for ages 45 and up. Considering the prevalence of UNKNOWN age for a large amount of these incidents, that this analysis could change drastically if data collection of perpetrators was improved. 
+
+
+The next analysis was on shootings by hour of the day.
+
+```{r by_time_of_day}
+by_time_of_day = cleaned_shooting_data %>% count(hour(OCCUR_TIME))
+colnames(by_time_of_day) <- c('hour_of_day','n','C3')
+ggplot(data=by_time_of_day, aes(x=hour_of_day, y=n)) + 
+    geom_bar(colour="black", fill="Green", width=.8, stat="identity") + 
+    guides(fill=none) +
+    xlab("Shooting By Hour of Day") + ylab("Total Number of Shootings") +
+    ggtitle("NYPD Shootings By Hour of Day")
+
+```
+
+This graph clearly shows the the late evening to early morning hours being associated with higher instances of shootings. While this is somewhat expected, it is interesting to see the up tick during what would be normal evening commute times. Perhaps it is because more people are out and about, or maybe just bad traffic related road rage. 
+
+## Future Trends
+
+Next we will look how the future might look in regards to shootings recorded by the NYPD using a simple prediction curve. The black segmented line in the graph below shows the trend between years, while the red line is our simple prediction model.
+
+```{r future_trend_data}
+future_trend_data = cleaned_shooting_data %>% count(year(OCCUR_DATE))
+colnames(future_trend_data) <- c('year_of','total_shootings','C3')
+future_trend_data = future_trend_data %>% add_row(year_of = 2021:2031)
+mod <- lm(total_shootings ~ poly(year_of, 2), data=future_trend_data)
+summary(mod)
+pred <- data.frame(year_of=2006:2030)
+pred$value <- predict(mod,newdata=pred)
+summary(pred)
+
+
+
+ggplot(data=future_trend_data,aes(x=year_of, y=total_shootings)) + 
+  geom_point(aes(x=year_of, y=total_shootings)) +
+  geom_line(aes(x=year_of, y=total_shootings)) +
+  geom_line(data=pred,aes(x=year_of, y=value), color="red") +
+  xlab("Year") + ylab("Total Number of Shootings") +
+  ggtitle("NYPD Shootings Future Prediction Curve")
+
+```
+
+There are two interesting things to note here. First that there is a steep decline in shooting incidents between 2015 and 2017 that carries into 2019. Second thing to notice is that there is a large spike in incidents in 2020. The spike in 2020 has a profound effect on the prediction curve. This could be attributed to many factors like: a change in reporting methodologies, varying police initiatives that may have effects on the rates of violent crime, or the COVID-19 Pandemic escalating social tensions and causing more shootings as a result. There is also the very real case that data could be incomplete for 2016-2019, making numbers artificially low. 
+
+In short this prediction curve should be taken with a gain of salt. More factors will need to be collected and analyzed before a predictive model could be achieved. Still, it is interesting to see the effects of 2020 on the future model. 
+
+## Conclusion and Possible Bias
+The first two analyses show that shooting incidents in NY City are most likely to be committed between 1900 and 0400 by a perpetrator that is between 18 and 44 years of age. The third attempts to model a predictive curve of shooting incident numbers until 2030, but there is too much variability between the years and not enough factors to explain why. 
+
+In order to improve investigations in shootings inside the NYPD's jurisdiction the following suggestions should be considered: 
+- Improve data collection accuracy
+- Include numbers related to other types of crime, both violent and non-violent
+- Track data concerning change in policing protocols
+- Pull in relevant external demographic data (i.e. income, unemployment, education, political party affiliation, etc)
+
+My own personal bias on this topic is an assumption that vast majority of shooting crimes are committed by younger people at night. Mitigation was handled by analyzing the data with minimal manipulations to age and time of day as to not dilute signals. While my bias wasn't completely off, the data proves that there are plenty of shootings committed by people in the 25-44 age range, and that bulk of shootings happen in a much wider time range than I expected. 
+
+
+
