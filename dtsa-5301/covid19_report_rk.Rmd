@@ -1,0 +1,20 @@
+---
+title: "Untitled"
+author: "Richard Kulp"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r covid_data_cleaning}
+url <- "https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series/"
+files <- c("time_series_covid19_confirmed_US.csv",
+           "time_series_covid19_deaths_US.csv")
+data_locs <- str_c(url,files)
+us_conf <- read_csv(data_locs[1])
+us_deaths <- read_csv(data_locs[2])
