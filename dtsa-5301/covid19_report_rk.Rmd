@@ -1,6 +1,6 @@
 ---
-title: "Untitled"
-author: "Richard Kulp"
+title: "Pennsylvania COVID-19 Investigation "
+author: "RK"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -9,12 +9,106 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Overview
+
+The report is based on US COVID-19 time series data from. In this report we will look at total cases vs total deaths, a closer look at total deaths by themselves, and a model which attempts to predict the amount case added daily over this time period. We will be visualizing these with area graphs and line plots. 
+
+## Data Import and Cleansing 
+
+The first thing we did in this investigation was source our data set from John Hopkins' github repository. We did this by using the static part of the URL as a template and concatenated the file name into a list of file location variables. We then read each of the variables into tables using the read_csv function.
+
+When our tables are loaded we then pivot the data sets so that we can investigate by State, Date, and Cases. In the case of the number of US deaths we look at State, Date, and Death. 
 
 ```{r covid_data_cleaning}
-url <- "https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series/"
+library(tidyverse)
+library(lubridate)
+url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 files <- c("time_series_covid19_confirmed_US.csv",
            "time_series_covid19_deaths_US.csv")
 data_locs <- str_c(url,files)
 us_conf <- read_csv(data_locs[1])
 us_deaths <- read_csv(data_locs[2])
+us_conf <- us_conf %>% 
+  pivot_longer(cols = -c(Country_Region,UID,Lat,Long_,iso2,iso3,
+                         code3,FIPS,Admin2,Province_State,Combined_Key),
+                names_to = "Date",
+                values_to = "Cases") %>%
+  select(Province_State, Combined_Key,Date,Cases)
+
+us_deaths <- us_deaths %>% 
+  pivot_longer(cols = -c(Country_Region,UID,Lat,Long_,iso2,iso3,
+                         code3,FIPS,Admin2,Province_State,Combined_Key,Population),
+                names_to = "Date",
+                values_to = "Deaths") %>%
+  select(Province_State, Combined_Key,Date,Deaths)
+
+us_covid <- us_conf %>%
+  full_join(us_deaths) %>%
+  mutate(Date = mdy(Date))
+```
+
+## COVID-19 Data Analysis
+
+In order to support our analysis of Pennsylvania specific COVID-19 metric we take a subset of the US Covid data we pivoted out during our data importation based on Province_State and sum Case/Death by Date in a table which we use to based our analysis on.
+
+The first analysis we do looks at total cases vs total deaths from early 2020 until Feb of 2022. As can be seen below total deaths are a very small number compared to cases. Particularly interesting is the how fast the total cases rise during the period when delta and omicron variants are active, while deaths seem to be linear in comparison.
+
+```{r covid_pa_case_death_comp}
+covid_pa_case_death_comp = us_covid %>% filter(Province_State == 'Pennsylvania') %>%
+  select(Date,Cases,Deaths) %>% group_by(Date) %>% 
+  summarise(Cases = sum(Cases),Deaths =sum(Deaths)) 
+
+ggplot(data=covid_pa_case_death_comp, aes(Date,Cases)) + 
+    geom_area(aes(Date,Cases),fill="green") + 
+    geom_area(aes(Date,Deaths),fill="red") +
+    xlab("Date") + ylab("Cases(green)/Deaths(red)") +
+    ggtitle("Pennsylvania Cases and Deaths") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+While this might seem like good news, it fails to represent the total deaths and the severity of the overall situation. Look more closely at total deaths we see that death rates rise along with with case count. What this seems to indicate is that while the newer variants spread more easily and are overall less deadly, there is still a significant portion of the population that is susceptible to complications from COVID-19. 
+
+```{r covid_pa_deaths}
+covid_pa_deaths = us_covid %>% filter(Province_State == 'Pennsylvania') %>%
+  select(Date,Deaths) %>% group_by(Date) %>% 
+  summarise(Deaths =sum(Deaths)) 
+
+ggplot(data=covid_pa_case_death_comp, aes(Date,Deaths)) + 
+    geom_area(aes(Date,Deaths),fill="red") +
+    xlab("Date") + ylab("Deaths") +
+    ggtitle("Pennsylvania Deaths") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+## COVID-19 Rate of Change Modeling
+
+Next we try to answer the question "Can we make a model which might capture how many cases are added over time." The model below attempts to fit a curve which represents the rate at which new cases are added using a polynomial curve. While the curve tends to lag the actual addition of cases, it does exhibit an similar pattern, indicating that with more data and model tuning a predictive curve could be developed. 
+
+```{r future_case_data}
+
+covid_pa_cases = us_covid %>% filter(Province_State == 'Pennsylvania') %>%
+  select(Date,Cases) 
+covid_pa_case_trend <- covid_pa_cases %>% mutate(Difference=Cases-lag(Cases))
+
+mod <- lm(Difference ~ poly(as.numeric(Date), 15), data=covid_pa_case_trend)
+summary(mod)
+pred <- data.frame(Date=seq(as.Date("2020-03-01"), as.Date("2022-02-22"), by = "day"))
+pred$value <- predict(mod,newdata=pred)
+summary(pred)
+
+
+
+ggplot(data=covid_pa_case_trend,aes(x=Date, y=Difference)) + 
+  geom_line(aes(x=Date, y=Difference)) +
+  geom_line(data=pred,aes(x=Date, y=value), color="red") +
+  xlab("Year") + ylab("Cases per Day") +
+  ggtitle("Cases Prediction Curve") +
+  ylim(0, 7500)
+
+```
+
+## Conclusion and Possible Bias
+
+The analysis of COVID-19 Data in relation to Pennsylvania Cases and Death show that while the pandemic may be moving toward becoming an endemic situation, we should still take measure to mitigate harm to those at risk of complication. The analysis clear shows that while the comparative rates between deaths and cases is getting smaller as time passes, there is still a significant number of people dying due to COVID-19 related complications.
+
+My own personal bias here was a perception that COVID-19 was not as severe as it was in the early stages and that deaths were declining. In order to mitigate this I specifically made sure that all death numbers were included and after my analysis was complete, compared my findings to the results of similar studies to assure that my methodology was sound and results were within sane ranges. 
