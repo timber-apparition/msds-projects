@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .error {
+        color: red;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-lite@4.17.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 400, "continuousHeight": 300}}, "data": {"name": "data-998ef051e7ec5ea1236880832995c96c"}, "mark": "circle", "encoding": {"color": {"field": "Game", "scale": {"scheme": "turbo"}, "type": "nominal"}, "size": {"field": "TotalUSDPrize", "type": "quantitative"}, "tooltip": [{"field": "Game", "type": "nominal"}, {"field": "TotalUSDPrize", "type": "quantitative"}], "x": {"field": "CountryCode", "type": "nominal"}, "y": {"field": "TotalUSDPrize", "type": "quantitative"}}, "$schema": "https://vega.github.io/schema/vega-lite/v4.17.0.json", "datasets": {"data-998ef051e7ec5ea1236880832995c96c": [{"CountryCode": "cn", "Game": "Dota 2", "TotalUSDPrize": 53582400.36}, {"CountryCode": "us", "Game": "Fortnite", "TotalUSDPrize": 20413450.11}, {"CountryCode": "kr", "Game": "League of Legends", "TotalUSDPrize": 18708972.51}, {"CountryCode": "kr", "Game": "Starcraft II", "TotalUSDPrize": 17601874.35}, {"CountryCode": "fi", "Game": "Dota 2", "TotalUSDPrize": 15706271.629999999}, {"CountryCode": "dk", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 11886326.85}, {"CountryCode": "dk", "Game": "Dota 2", "TotalUSDPrize": 11179729.620000001}, {"CountryCode": "us", "Game": "Dota 2", "TotalUSDPrize": 9427431.49}, {"CountryCode": "kr", "Game": "Overwatch", "TotalUSDPrize": 9377752.11}, {"CountryCode": "se", "Game": "Dota 2", "TotalUSDPrize": 8698635.82}, {"CountryCode": "au", "Game": "Dota 2", "TotalUSDPrize": 7809637.26}, {"CountryCode": "cn", "Game": "League of Legends", "TotalUSDPrize": 7374567.6}, {"CountryCode": "se", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 7330213.14}, {"CountryCode": "ru", "Game": "Dota 2", "TotalUSDPrize": 6604936.23}, {"CountryCode": "de", "Game": "Dota 2", "TotalUSDPrize": 6508351.63}, {"CountryCode": "jo", "Game": "Dota 2", "TotalUSDPrize": 6331742.35}, {"CountryCode": "us", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 6213733.64}, {"CountryCode": "my", "Game": "Dota 2", "TotalUSDPrize": 6183412.71}, {"CountryCode": "ca", "Game": "Dota 2", "TotalUSDPrize": 6095782.41}, {"CountryCode": "fr", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 5772472.180000001}, {"CountryCode": "br", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 5558000.02}, {"CountryCode": "fr", "Game": "Dota 2", "TotalUSDPrize": 5554297.41}, {"CountryCode": "ua", "Game": "Dota 2", "TotalUSDPrize": 5458430.77}, {"CountryCode": "kr", "Game": "Heroes of the Storm", "TotalUSDPrize": 4802679.99}, {"CountryCode": "bg", "Game": "Dota 2", "TotalUSDPrize": 4579118.16}, {"CountryCode": "kr", "Game": "PUBG", "TotalUSDPrize": 4451553.56}, {"CountryCode": "lb", "Game": "Dota 2", "TotalUSDPrize": 4193412.69}, {"CountryCode": "cn", "Game": "Arena of Valor", "TotalUSDPrize": 4026577.1399999997}, {"CountryCode": "pk", "Game": "Dota 2", "TotalUSDPrize": 3608317.34}, {"CountryCode": "pl", "Game": "Counter-Strike: Global Offensive", "TotalUSDPrize": 3482218.2}, {"CountryCode": "ph", "Game": "Dota 2", "TotalUSDPrize": 2889018.79}]}};
+      var embedOpt = {"renderer": "svg", "mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div class="error" style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
